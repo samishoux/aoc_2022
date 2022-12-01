@@ -1,5 +1,5 @@
 fn main() {
-    let file = include_str!("./input1.txt");
+    let file = include_str!("./input1.prod");
 
     let parsed_lines = elf_calorie_iterator(file);
 
@@ -21,4 +21,12 @@ fn elf_calorie_iterator(input: &str) -> Vec<i32> {
 
     parsed_lines.sort_by(|a, b| b.cmp(a));
     return parsed_lines;
+}
+
+#[test]
+fn elf_calorie_iterator_test() {
+    let file = include_str!("./input1.dev");
+    let result = elf_calorie_iterator(file);
+    assert_eq!(result.len(), 5);
+    assert_eq!(result[0], 24000)
 }
