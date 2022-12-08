@@ -1,70 +1,86 @@
-use anyhow::Result;
+use anyhow::Error;
+use std::str::FromStr;
 
-fn main() -> Result<()> {
-    let input = std::fs::read_to_string("src/bin/input7.prod")?;
-
-    let mut stack = vec![("/", 0)];
-
-    let mut final_countdown = vec![];
-
-    let total_space = 70000000;
-    let space_to_delete = 30000000;
-
-    let mut total = 0;
-
-    for line in input.lines().filter(|l| !l.is_empty()) {
-        if line == "$ cd /" || line == "$ ls" {
-            continue;
-        }
-
-        if line.starts_with("$ cd ") {
-            let dir = &line[5..];
-            if dir == ".." {
-                let (name, amount) = stack.pop().unwrap();
-                if amount <= 100_000 {
-                    total += amount;
-                }
-                stack.last_mut().unwrap().1 += amount;
-                final_countdown.push((name, amount));
-            } else {
-                stack.push((dir, 0));
-            }
-            continue;
-        }
-
-        let (amount, _) = line.split_once(" ").unwrap();
-
-        if let Ok(amount) = amount.parse::<usize>() {
-            stack.last_mut().unwrap().1 += amount;
-        } else if amount == "dir" {
-            // ignore
-        }
-    }
-
-    while stack.len() > 0 {
-        let (name, amount) = stack.pop().unwrap();
-        final_countdown.push((name, amount));
-
-        if stack.len() > 0 {
-            stack.last_mut().unwrap().1 += amount;
-        }
-    }
-
-    let free_space = total_space - final_countdown.last().unwrap().1;
-    let space_required = space_to_delete - free_space;
-
-    let total = final_countdown
-        .into_iter()
-        .filter(move |(_, amount)| *amount >= space_required)
-        .map(|(_, amount)| {
-            return amount;
-        })
-        .min();
-
-    println!("total {:?}", total);
-
-    return Ok(());
+struct Dictionary {
+    name: String,
+    files: Vec<File>,
+    dictionaries: Vec<Dictionary>,
 }
 
-#[cfg(test)]
-mod test {}
+impl Default for Dictionary {
+    fn default() -> Self {
+        Self {
+            name: Default::default(),
+            files: Default::default(),
+            dictionaries: Default::default(),
+        }
+    }
+}
+
+impl Dictionary {
+    fn new(name: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            ..Default::default()
+        }
+    }
+}
+
+impl FromStr for Dictionary {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        //take this and convert into a dictionary
+        //dir d
+        if !s.starts_with("dir") {
+            return Err(Error::msg(
+                "Unexpected string format. Expected to have 'dir' at the start of the string",
+            ));
+        }
+        let Some((_, name)) = s.split_once(" ") else  {
+            return Err(Error::msg("Could not split on space for the dictonary"));
+        };
+
+        return Ok(Dictionary::new(name));
+
+        todo!()
+    }
+}
+
+struct File {
+    name: String,
+    size: usize,
+}
+
+impl FromStr for File {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        //take this and convert into a file
+        //14848514 b.txt
+        let Some((size, name)) = s.split_once(" ") else {
+            return Err(Error::msg("Could not split on space for the file"));
+        };
+
+        let Ok(size) = size.parse::<usize>() else {
+            return Err(Error::msg("Could not parse file size into usize"));
+        };
+
+        return Ok(File {
+            name: name.into(),
+            size,
+        });
+    }
+}
+
+#[test]
+fn test_from_str_file() {
+    let input = "14848514 b.txt";
+    let file = input.parse::<File>();
+    assert!(file.is_ok());
+    let file = file.unwrap();
+    assert!(file.name == "b.txt");
+    assert!(file.size == 14848514);
+}
+
+fn main() {}
